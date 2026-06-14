@@ -12,7 +12,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: shivammathur/setup-php@v2
         with:
@@ -20,7 +20,7 @@ jobs:
           extensions: mbstring, pdo_sqlite, sqlite3, gd
           coverage: none
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: "20"
           cache: npm
@@ -36,6 +36,7 @@ jobs:
         working-directory: backend
         run: |
           cp .env.example .env
+          mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs
           touch database/database.sqlite
           php artisan key:generate
           php artisan migrate --force
