@@ -1,6 +1,6 @@
 import { Link, Navigate, useParams } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { Calendar, Clock, Facebook, Link2, Share2, User } from "lucide-react";
+import { type MouseEvent, useCallback, useEffect, useRef, useState } from "react";
+import { Calendar, ChevronLeft, ChevronRight, Clock, Facebook, Link2, Share2, User, X } from "lucide-react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { AdSlot } from "@/components/site/AdSlot";
 import { CoverArt } from "@/components/news/CoverArt";
@@ -15,6 +15,11 @@ const articleAliases: Record<string, string> = {
   "fk-posavina-pobjeda": "fk-posavina-ubjedljiva-pobjeda-na-domacem-terenu",
   "lista-lijekova-fonda-rs": "objavljena-nova-lista-lijekova-fonda-zdravstvenog-osiguranja-rs",
   "kud-milosevac-godisnji-koncert": "kud-milosevac-priprema-godisnji-koncert",
+};
+
+type LightboxImage = {
+  src: string;
+  alt: string;
 };
 
 function formatArticleDate(iso: string) {
@@ -62,8 +67,44 @@ const Article = () => {
   const canonicalSlug = articleAliases[slug] ?? slug;
   const [fetchedArticle, setFetchedArticle] = useState<ArticleType | null>();
   const [lookupFailed, setLookupFailed] = useState(false);
+  const [lightbox, setLightbox] = useState<{ images: LightboxImage[]; index: number } | null>(null);
+  const articleProseRef = useRef<HTMLDivElement>(null);
   const { articles } = usePortalContent(Boolean(fetchedArticle));
   const article = fetchedArticle ?? articles.find((item) => item.slug === canonicalSlug);
+
+  const closeLightbox = useCallback(() => setLightbox(null), []);
+
+  const showPreviousLightboxImage = useCallback(() => {
+    setLightbox((current) => current
+      ? { ...current, index: (current.index - 1 + current.images.length) % current.images.length }
+      : null);
+  }, []);
+
+  const showNextLightboxImage = useCallback(() => {
+    setLightbox((current) => current
+      ? { ...current, index: (current.index + 1) % current.images.length }
+      : null);
+  }, []);
+
+  const openArticleImage = (event: MouseEvent<HTMLDivElement>) => {
+    if (!(event.target instanceof Element)) return;
+
+    const image = event.target.closest("img");
+    if (!image || !articleProseRef.current?.contains(image)) return;
+
+    event.preventDefault();
+    const articleImages = Array.from(articleProseRef.current.querySelectorAll("img"));
+    const images = articleImages.map((item) => {
+      const linkedSource = item.closest("a")?.href;
+      const src = linkedSource && /\.(?:avif|gif|jpe?g|png|webp)(?:[?#].*)?$/i.test(linkedSource)
+        ? linkedSource
+        : item.currentSrc || item.src;
+
+      return { src, alt: item.alt || article?.title || "Slika iz članka" };
+    });
+
+    setLightbox({ images, index: articleImages.indexOf(image) });
+  };
 
   useEffect(() => {
     const controller = new AbortController();
@@ -90,10 +131,29 @@ const Article = () => {
 
   useEffect(() => {
     window.scrollTo({ top: 0 });
+    closeLightbox();
     if (article) {
       document.title = `${article.title} - Miloševac`;
     }
-  }, [canonicalSlug, article]);
+  }, [canonicalSlug, article, closeLightbox]);
+
+  useEffect(() => {
+    document.body.classList.toggle("has-image-lightbox", lightbox !== null);
+    return () => document.body.classList.remove("has-image-lightbox");
+  }, [lightbox]);
+
+  useEffect(() => {
+    if (!lightbox) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeLightbox();
+      if (event.key === "ArrowLeft") showPreviousLightboxImage();
+      if (event.key === "ArrowRight") showNextLightboxImage();
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [lightbox, closeLightbox, showNextLightboxImage, showPreviousLightboxImage]);
 
   if (canonicalSlug !== slug) {
     return <Navigate to={`/clanak/${canonicalSlug}`} replace />;
@@ -159,9 +219,16 @@ const Article = () => {
           <div className="article-content">
             <AdSlot variant="inline" lazy className="mb-8" />
             {article.contentHtml ? (
-              <div className="article-prose article-prose-clean" dangerouslySetInnerHTML={{ __html: article.contentHtml }} />
+              <div
+                ref={articleProseRef}
+                className="article-prose article-prose-clean"
+                onClick={openArticleImage}
+                dangerouslySetInnerHTML={{ __html: article.contentHtml }}
+              />
             ) : (
-              <div className="article-prose article-prose-clean">{article.body.map(renderParagraph)}</div>
+              <div ref={articleProseRef} className="article-prose article-prose-clean" onClick={openArticleImage}>
+                {article.body.map(renderParagraph)}
+              </div>
             )}
             <AdSlot variant="inline" lazy className="mt-8" />
 
@@ -220,6 +287,43 @@ const Article = () => {
           </section>
         )}
       </article>
+
+      {lightbox ? (
+        <div className="image-lightbox" onClick={closeLightbox} role="dialog" aria-modal="true" aria-label="Uvećana slika iz članka">
+          <button className="image-lightbox-close" type="button" onClick={closeLightbox} aria-label="Zatvori prikaz">
+            <X aria-hidden />
+          </button>
+          {lightbox.images.length > 1 ? (
+            <>
+              <button
+                className="image-lightbox-nav image-lightbox-prev"
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  showPreviousLightboxImage();
+                }}
+                aria-label="Prethodna slika"
+              >
+                <ChevronLeft aria-hidden />
+              </button>
+              <button
+                className="image-lightbox-nav image-lightbox-next"
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  showNextLightboxImage();
+                }}
+                aria-label="Sljedeća slika"
+              >
+                <ChevronRight aria-hidden />
+              </button>
+            </>
+          ) : null}
+          <figure className="image-lightbox-frame" onClick={(event) => event.stopPropagation()}>
+            <img src={lightbox.images[lightbox.index].src} alt={lightbox.images[lightbox.index].alt} />
+          </figure>
+        </div>
+      ) : null}
 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }} />
     </SiteLayout>

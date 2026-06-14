@@ -213,6 +213,10 @@
     font-family: Georgia, 'Times New Roman', serif;
   }
 
+  .article-prose-clean img {
+    @apply cursor-zoom-in transition-opacity hover:opacity-90;
+  }
+
   .article-prose-clean .youtube-embed {
     @apply my-10 aspect-video overflow-hidden rounded-xl bg-black shadow-card ring-1 ring-slate-200;
   }
@@ -1037,6 +1041,13 @@
     font-size: 30px;
     line-height: 1;
     cursor: pointer;
+  }
+
+  .image-lightbox-close svg,
+  .image-lightbox-nav svg {
+    width: 28px;
+    height: 28px;
+    margin: auto;
   }
 
   .image-lightbox-close:hover,
