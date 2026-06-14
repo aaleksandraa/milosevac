@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+Disallow: /admin
+Disallow: /author
+Disallow: /login
+Disallow: /pretraga
+Disallow: /*?tag=
+
+Sitemap: https://milosevac.com/sitemap.xml

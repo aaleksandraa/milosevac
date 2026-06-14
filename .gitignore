@@ -1,0 +1,50 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Local/runtime data
+backend/database/*.sqlite*
+backend/storage/app/public/*
+backend/storage/app/private/*
+backend/storage/app/tmp/*
+backend/storage/app/purifier/*
+backend/storage/framework/*
+backend/storage/logs/*
+backend/bootstrap/cache/*.php
+backend/public/hot
+backend/public/storage
+backend/public/build
+backend/vendor
+backend/node_modules
+
+# Deployment/runtime artifacts
+releases/
+shared/
+*.sql
+*.sql.gz
+*.tar.gz
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
