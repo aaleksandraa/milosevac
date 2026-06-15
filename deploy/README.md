@@ -4,6 +4,7 @@ Produkcija koristi jedan domen (`https://milosevac.com`) i jedan Git monorepo:
 
 - React build iz `dist/` servira Nginx.
 - Laravel u `backend/` obrađuje `/api`, admin/autorske rute, storage, sitemapove, RSS i health check.
+- Facebook, Viber, WhatsApp i ostali social crawler user-agenti za javne URL-ove šalju se Laravelu, koji vraća dinamičke Open Graph i Twitter metapodatke; obični posjetioci i dalje dobijaju React aplikaciju.
 - Kod se objavljuje kroz release direktorije; baza, `.env` i uploadovane slike ostaju u `shared/`.
 
 ## 1. Inventar postojećeg servera
@@ -178,3 +179,12 @@ curl -I https://milosevac.com/storage/KNOWN_IMAGE.webp
 ```
 
 Provjeriti naslovnu, sve vijesti, članak, FK Posavina, admin login/upload, slike, sitemap, robots i feed. Potvrditi i da `.env`, SQLite, XML, backup i log fajlovi vraćaju `403` ili `404`.
+
+Provjera social preview podataka za sve objavljene članke:
+
+```bash
+cd /var/www/milosevac/current/backend
+php artisan posts:generate-social-images
+php artisan seo:audit-social
+curl -A 'facebookexternalhit/1.1' -s https://milosevac.com/clanak/POZNATI-SLUG | grep -E 'og:(title|description|image|url)'
+```

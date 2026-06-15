@@ -9,6 +9,7 @@ use App\Models\Tag;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class Seo
@@ -26,16 +27,24 @@ class Seo
     public static function page(string $title, ?string $description = null, ?string $canonical = null, ?string $image = null, array $schema = [], string $type = 'website', string $robots = 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'): array
     {
         $site = self::site();
-        $canonical = $canonical ?: URL::current();
+        $canonical = self::absoluteUrl($canonical ?: URL::current());
         $title = Str::of($title)->contains($site['name']) ? (string) $title : "{$title} | {$site['name']}";
-        $description = Str::limit(trim((string) ($description ?: $site['description'])), 160, '');
-        $image = $image ?: null;
+        $description = Str::limit(trim(html_entity_decode(strip_tags((string) ($description ?: $site['description'])))), 160, '');
+        $image = self::absoluteUrl($image ?: asset('logo.webp'));
+        $imageType = match (strtolower(pathinfo(parse_url($image, PHP_URL_PATH) ?: '', PATHINFO_EXTENSION))) {
+            'jpg', 'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            'gif' => 'image/gif',
+            default => 'image/webp',
+        };
         $schemas = $schema ? [$schema] : [];
 
         return compact('title', 'description', 'canonical', 'image', 'schemas', 'robots') + [
             'type' => $type,
             'site_name' => $site['name'],
             'locale' => 'bs_BA',
+            'image_alt' => $title,
+            'image_type' => $imageType,
         ];
     }
 
@@ -63,20 +72,45 @@ class Seo
             $post->meta_title ?: $post->title,
             $post->meta_description ?: $post->excerpt,
             $post->canonical_url ?: route('posts.show', $post->slug),
-            $post->og_image ?: ($post->featured_image ? asset('storage/'.$post->featured_image) : null),
+            self::storageImage($post->og_image ?: $post->featured_image),
             $schema,
             'article'
         );
 
         $seo['schemas'][] = self::breadcrumb([
             ['name' => 'Početna', 'url' => route('home')],
-            ['name' => $post->category->name, 'url' => route('categories.show', $post->category)],
+            ['name' => $post->category->name, 'url' => route('categories.show', $post->category->slug)],
             ['name' => $post->title, 'url' => route('posts.show', $post->slug)],
         ]);
         $seo['published_at'] = optional($post->published_at)->toIso8601String();
         $seo['modified_at'] = $post->updated_at->toIso8601String();
 
         return $seo;
+    }
+
+    public static function absoluteUrl(?string $url): ?string
+    {
+        if (! $url) {
+            return null;
+        }
+
+        if (Str::startsWith($url, ['http://', 'https://'])) {
+            return $url;
+        }
+
+        return url('/'.ltrim($url, '/'));
+    }
+
+    public static function storageImage(?string $path): ?string
+    {
+        if (! $path || Str::startsWith($path, ['http://', 'https://'])) {
+            return $path;
+        }
+
+        $socialPath = preg_replace('/\.[^.]+$/', '-social.jpg', $path);
+        $selected = $socialPath && Storage::disk('public')->exists($socialPath) ? $socialPath : $path;
+
+        return asset('storage/'.$selected);
     }
 
     public static function category(Category $category): array

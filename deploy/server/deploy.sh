@@ -72,6 +72,7 @@ fi
   cd "$RELEASE_DIR/backend"
   "$PHP_BIN" artisan migrate --force
   "$PHP_BIN" artisan storage:link
+  "$PHP_BIN" artisan posts:generate-social-images
   "$PHP_BIN" artisan optimize
 )
 

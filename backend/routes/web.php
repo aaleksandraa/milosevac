@@ -17,6 +17,7 @@ Route::get('/pretraga', [FrontendRedirectController::class, 'search'])->name('se
 Route::get('/fk-posavina', [FrontendRedirectController::class, 'fkPosavina'])->name('fk-posavina');
 Route::get('/fk-posavina/utakmica/{match}', [FrontendRedirectController::class, 'match'])->name('matches.show');
 Route::get('/vrijeme', [FrontendRedirectController::class, 'weather'])->name('weather.show');
+Route::get('/kontakt', [FrontendRedirectController::class, 'contact'])->name('contact');
 Route::get('/politika-privatnosti', [FrontendRedirectController::class, 'privacy'])->name('privacy');
 Route::get('/politika-kolacica', [FrontendRedirectController::class, 'cookies'])->name('cookies');
 Route::get('/uslovi-koristenja', [FrontendRedirectController::class, 'terms'])->name('terms');

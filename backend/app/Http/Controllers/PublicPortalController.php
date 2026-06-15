@@ -291,7 +291,7 @@ class PublicPortalController extends Controller
                 $match->meta_title ?: $match->title,
                 $match->meta_description ?: $match->excerpt,
                 route('matches.show', $match->slug),
-                $match->cover_image ? asset('storage/'.$match->cover_image) : null,
+                Seo::storageImage($match->cover_image),
                 [
                     '@context' => 'https://schema.org',
                     '@type' => 'SportsEvent',

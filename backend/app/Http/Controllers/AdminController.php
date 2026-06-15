@@ -336,16 +336,24 @@ class AdminController extends Controller
         $data['content'] = app(HtmlSanitizer::class)->clean($data['content']);
 
         $processedImagePaths = [];
+        $imagePipeline = app(ImagePipeline::class);
         foreach (['featured_image', 'og_image'] as $field) {
             if ($request->hasFile($field)) {
-                $processed = app(ImagePipeline::class)->process($request->file($field), $request->user()?->id, $post->exists ? $post->id : null);
-                $data[$field] = $processed['path'];
+                $processed = $imagePipeline->process($request->file($field), $request->user()?->id, $post->exists ? $post->id : null);
+                $data[$field] = $field === 'og_image'
+                    ? ($imagePipeline->socialImage($processed['path'], true) ?: $processed['path'])
+                    : $processed['path'];
                 $data[$field.'_responsive'] = $processed['responsive'];
                 $processedImagePaths[] = $processed['path'];
             } else {
                 unset($data[$field]);
                 unset($data[$field.'_responsive']);
             }
+        }
+        if ($request->hasFile('featured_image')
+            && ! $request->hasFile('og_image')
+            && (! $post->og_image || Str::endsWith($post->og_image, '-social.jpg'))) {
+            $data['og_image'] = $imagePipeline->socialImage($data['featured_image'], true);
         }
 
         $data['slug'] = $data['slug'] ?: Str::slug($data['title']);
@@ -406,7 +414,9 @@ class AdminController extends Controller
         unset($data['gallery_order'], $data['gallery_captions'], $data['delete_gallery'], $data['gallery_images']);
 
         if ($request->hasFile('cover_image')) {
-            $processed = app(ImagePipeline::class)->process($request->file('cover_image'), $request->user()?->id, null, 'matches', true);
+            $imagePipeline = app(ImagePipeline::class);
+            $processed = $imagePipeline->process($request->file('cover_image'), $request->user()?->id, null, 'matches', true);
+            $imagePipeline->socialImage($processed['path'], true);
             $data['cover_image'] = $processed['path'];
             $data['cover_image_responsive'] = $processed['responsive'];
         } else {

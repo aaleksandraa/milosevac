@@ -133,9 +133,11 @@ class AuthorController extends Controller
 
         $processedImagePaths = [];
         if ($request->hasFile('featured_image')) {
-            $processed = app(ImagePipeline::class)->process($request->file('featured_image'), $request->user()->id, $post->exists ? $post->id : null);
+            $imagePipeline = app(ImagePipeline::class);
+            $processed = $imagePipeline->process($request->file('featured_image'), $request->user()->id, $post->exists ? $post->id : null);
             $data['featured_image'] = $processed['path'];
             $data['featured_image_responsive'] = $processed['responsive'];
+            $data['og_image'] = $imagePipeline->socialImage($processed['path'], true);
             $processedImagePaths[] = $processed['path'];
         }
 
@@ -194,7 +196,9 @@ class AuthorController extends Controller
         unset($data['gallery_order'], $data['gallery_captions'], $data['delete_gallery'], $data['gallery_images']);
 
         if ($request->hasFile('cover_image')) {
-            $processed = app(ImagePipeline::class)->process($request->file('cover_image'), $request->user()->id, null, 'matches', true);
+            $imagePipeline = app(ImagePipeline::class);
+            $processed = $imagePipeline->process($request->file('cover_image'), $request->user()->id, null, 'matches', true);
+            $imagePipeline->socialImage($processed['path'], true);
             $data['cover_image'] = $processed['path'];
             $data['cover_image_responsive'] = $processed['responsive'];
         }

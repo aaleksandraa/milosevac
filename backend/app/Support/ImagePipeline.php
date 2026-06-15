@@ -87,4 +87,25 @@ class ImagePipeline
             ->map(fn (array $variant) => asset('storage/'.$variant['path']).' '.$variant['width'].'w')
             ->implode(', ');
     }
+
+    public function socialImage(?string $sourcePath, bool $force = false): ?string
+    {
+        if (! $sourcePath || Str::startsWith($sourcePath, ['http://', 'https://'])) {
+            return $sourcePath;
+        }
+
+        $source = storage_path('app/public/'.$sourcePath);
+        if (! File::exists($source)) {
+            return null;
+        }
+
+        $targetPath = preg_replace('/\.[^.]+$/', '-social.jpg', $sourcePath);
+        $target = storage_path('app/public/'.$targetPath);
+        if ($force || ! File::exists($target)) {
+            File::ensureDirectoryExists(dirname($target));
+            ImageManager::gd()->read($source)->scale(width: 1200)->toJpeg(quality: 86)->save($target);
+        }
+
+        return $targetPath;
+    }
 }
