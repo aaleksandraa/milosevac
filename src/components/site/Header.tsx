@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, Search, X } from "lucide-react";
+import { CloudSun, Menu, Search, X } from "lucide-react";
 import { Logo } from "./Logo";
 import { cn } from "@/lib/utils";
 import { backendLoginUrl } from "@/lib/backend";
@@ -11,6 +11,7 @@ const navItems = [
   { label: "Obavještenja", href: "/kategorija/vijesti?tag=obavjestenje" },
   { label: "Sport", href: "/kategorija/sport" },
   { label: "FK Posavina", href: "/fk-posavina" },
+  { label: "Vrijeme", href: "/vrijeme" },
   { label: "Kontakt", href: "/kontakt" },
 ];
 
@@ -22,14 +23,43 @@ function isActivePath(pathname: string, currentSearch: string, href: string) {
 
 export function Header({ onSearchClick }: { onSearchClick: () => void }) {
   const [open, setOpen] = useState(false);
+  const [temperature, setTemperature] = useState<number | null>(null);
   const location = useLocation();
 
   useEffect(() => setOpen(false), [location.pathname, location.search]);
 
+  useEffect(() => {
+    const controller = new AbortController();
+
+    fetch("/api/weather", { headers: { Accept: "application/json" }, signal: controller.signal })
+      .then((response) => response.ok ? response.json() : null)
+      .then((payload) => setTemperature(payload?.current?.temperature ?? null))
+      .catch(() => {});
+
+    return () => controller.abort();
+  }, []);
+
   return (
     <header className="sticky top-0 z-40 border-b border-border/80 bg-white/95 backdrop-blur-xl">
-      <div className="container-news flex h-20 items-center justify-between gap-4">
-        <Logo />
+      <div className="container-news flex h-16 items-center justify-between gap-3 sm:h-20 sm:gap-4">
+        <Logo className="hidden lg:flex" />
+
+        <div className="flex min-w-0 items-center gap-2 lg:hidden">
+          <Link
+            to="/vrijeme"
+            className="inline-flex h-10 items-center gap-1.5 rounded-md bg-slate-100 px-2.5 text-sm font-extrabold text-slate-700 transition hover:bg-slate-200 hover:text-primary"
+            aria-label="Trenutna temperatura i vrijeme u Miloševcu"
+          >
+            <CloudSun className="h-4 w-4 text-primary" />
+            {temperature === null ? "--°" : `${Math.round(temperature)}°`}
+          </Link>
+          <Link
+            to="/kategorija/vijesti?tag=obavjestenje"
+            className="truncate rounded-md bg-primary px-3 py-2.5 text-xs font-extrabold uppercase tracking-wide text-white transition hover:bg-primary/90"
+          >
+            Obavještenja
+          </Link>
+        </div>
 
         <nav className="hidden items-center gap-6 lg:flex xl:gap-8" aria-label="Glavna navigacija">
           {navItems.map((item) => (
